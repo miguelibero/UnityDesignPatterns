@@ -11,6 +11,8 @@ public class BreakableTargetController : MonoBehaviour, IAttackTarget
 
     [SerializeField] float _explosionRadius = 1.0f;
 
+    [SerializeField] float _pushForce = 1.0f;
+
 
     Rigidbody _rigidbody;
     MeshFilter _meshFilter;
@@ -23,17 +25,17 @@ public class BreakableTargetController : MonoBehaviour, IAttackTarget
         _renderer = GetComponent<Renderer>();
     }
 
-    void IAttackTarget.OnAttackHit(int damage)
+    void IAttackTarget.OnAttackHit(Vector3 position, int damage)
     {
         if(!IsValid)
         {
             return;
         }
-        BreakIntoPieces();
+        BreakIntoPieces(transform.position - position);
         Destroy(gameObject);
     }
 
-    void BreakIntoPieces()
+    void BreakIntoPieces(Vector3 dir)
     {
         var mesh = _meshFilter.mesh;
         var vertices = mesh.vertices;
@@ -48,20 +50,24 @@ public class BreakableTargetController : MonoBehaviour, IAttackTarget
             var averageNormal = (normals[triangles[i]] + normals[triangles[i + 1]] + normals[triangles[i + 2]]).normalized;
             var s = _renderer.bounds.size;
             var extrudeSize = ((s.x + s.y + s.z) / 3) * 0.3f;
-            CreateMeshPiece(extrudeSize, index, averageNormal, vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]], uvs[triangles[i]], uvs[triangles[i + 1]], uvs[triangles[i + 2]]);
+            var go = CreateMeshPiece(extrudeSize, averageNormal, vertices[triangles[i]], vertices[triangles[i + 1]], vertices[triangles[i + 2]], uvs[triangles[i]], uvs[triangles[i + 1]], uvs[triangles[i + 2]]);
+            go.layer = gameObject.layer;
+            go.name = $"{name} {i}";
+            var rb = go.AddComponent<Rigidbody>();
+            rb.mass = _rigidbody.mass / triangles.Length;
+            rb.AddExplosionForce(_explosionForce, transform.position, _explosionRadius);
+            rb.AddForce(dir * _pushForce);
             index++;
         }
     }
 
-    GameObject CreateMeshPiece(float extrudeSize, int index, Vector3 faceNormal, Vector3 v1, Vector3 v2, Vector3 v3, Vector2 uv1, Vector2 uv2, Vector2 uv3)
+    GameObject CreateMeshPiece(float extrudeSize, Vector3 faceNormal, Vector3 v1, Vector3 v2, Vector3 v3, Vector2 uv1, Vector2 uv2, Vector2 uv3)
     {
-        var go = new GameObject($"{name} {index}");
+        var go = new GameObject();
 
-        Mesh mesh = go.AddComponent<MeshFilter>().mesh;
-        go.AddComponent<MeshRenderer>();
-        go.GetComponent<Renderer>().material = _renderer.material;
+        var mesh = go.AddComponent<MeshFilter>().mesh;
+        go.AddComponent<MeshRenderer>().material = _renderer.material;
         go.transform.position = transform.position;
-        go.layer = gameObject.layer;
 
         var vertices = new Vector3[3 * 4];
         var triangles = new int[3 * 4];
@@ -69,6 +75,7 @@ public class BreakableTargetController : MonoBehaviour, IAttackTarget
 
         // get centroid
         var v4 = (v1 + v2 + v3) / 3;
+
         // extend to backwards
         v4 += -faceNormal * extrudeSize;
 
@@ -128,9 +135,6 @@ public class BreakableTargetController : MonoBehaviour, IAttackTarget
         mesh.RecalculateNormals();
 
         CalculateMeshTangents(mesh);
-
-        var rb = go.AddComponent<Rigidbody>();
-        rb.AddExplosionForce(_explosionForce, v4, _explosionRadius);
 
         var mc = go.AddComponent<MeshCollider>();
         mc.sharedMesh = mesh;

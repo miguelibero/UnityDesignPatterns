@@ -1,4 +1,5 @@
 
+using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
@@ -8,15 +9,37 @@ public class EnemyController : MonoBehaviour, IAttackTarget, IStateMachineEventL
 
     static int _dieParam = Animator.StringToHash("Die");
 
-    [SerializeField] int _health = 5;
+    [SerializeField] int _health;
+    [SerializeField] int _level;
+    [SerializeReference, InspectorName("Config")] EnemyConfig _unityConfig;
+    
+    IEnemyConfig _config;
+
+    public IEnemyConfig Config
+    {
+        get => _config == null ? _unityConfig : _config;
+        set => _config = value;
+    }
 
     Animator _animator;
+    Collider _collider;
 
     bool Dead => _health <= 0;
 
+    void Awake()
+    {
+        if (Config == null)
+        {
+            throw new ArgumentNullException(nameof(Config));
+        }
+    }
+
     void Start()
     {
+
         _animator = GetComponent<Animator>();
+        _collider = GetComponent<Collider>();
+        _health = Config.GetHealth(_level);
     }
 
     bool IAttackTarget.IsValid => this != null && enabled && !Dead;
@@ -36,7 +59,7 @@ public class EnemyController : MonoBehaviour, IAttackTarget, IStateMachineEventL
         return false;
     }
 
-    void IAttackTarget.OnAttackHit(int damage)
+    void IAttackTarget.OnAttackHit(Vector3 position, int damage)
     {
         if (Dead)
         {
@@ -55,6 +78,10 @@ public class EnemyController : MonoBehaviour, IAttackTarget, IStateMachineEventL
         if (name == "Dead")
         {
             _animator.enabled = false;
+            if (_collider != null)
+            {
+                _collider.enabled = false;
+            }
         }
     }
 }

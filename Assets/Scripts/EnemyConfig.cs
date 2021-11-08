@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "EnemyType", menuName = "ScriptableObjects/EnemyType")]
-public class EnemyType : ScriptableObject, IEnemyType
+public class EnemyConfig : ScriptableObject, IEnemyConfig
 {
     public string Name => _name;
 
@@ -12,7 +12,6 @@ public class EnemyType : ScriptableObject, IEnemyType
 
     [SerializeField]
     List<int> _healthPerLevel;
-
 
     public int GetHealth(int level)
     {

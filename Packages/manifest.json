@@ -48,7 +48,8 @@
       "name": "Open UPM Packages",
       "url": "https://package.openupm.com",
       "scopes": [
-        "com.cysharp.unitask"
+        "com.cysharp.unitask",
+        "com.mackysoft.serializereference-extensions"
       ]
     }
   ]

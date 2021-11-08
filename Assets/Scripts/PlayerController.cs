@@ -93,7 +93,7 @@ public class PlayerController : MonoBehaviour, InputControls.IPlayerActions, ISt
         {
             if (_attackedTargets.Count > 0)
             {
-                _attackedTargets.Dequeue().OnAttackHit(_attackDamage);
+                _attackedTargets.Dequeue().OnAttackHit(transform.position, _attackDamage);
             }
         }
     }
