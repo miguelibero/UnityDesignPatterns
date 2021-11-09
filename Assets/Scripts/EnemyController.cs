@@ -11,16 +11,8 @@ public class EnemyController : MonoBehaviour, IAttackTarget, IStateMachineEventL
 
     [SerializeField] int _health;
     [SerializeField] int _level;
-    [SerializeReference, InspectorName("Config")] EnemyConfig _unityConfig;
+    [SerializeField] EnemyConfig _config;
     
-    IEnemyConfig _config;
-
-    public IEnemyConfig Config
-    {
-        get => _config == null ? _unityConfig : _config;
-        set => _config = value;
-    }
-
     Animator _animator;
     Collider _collider;
 
@@ -28,9 +20,9 @@ public class EnemyController : MonoBehaviour, IAttackTarget, IStateMachineEventL
 
     void Awake()
     {
-        if (Config == null)
+        if (_config == null)
         {
-            throw new ArgumentNullException(nameof(Config));
+            throw new ArgumentNullException(nameof(_config));
         }
     }
 
@@ -39,7 +31,7 @@ public class EnemyController : MonoBehaviour, IAttackTarget, IStateMachineEventL
 
         _animator = GetComponent<Animator>();
         _collider = GetComponent<Collider>();
-        _health = Config.GetHealth(_level);
+        _health = _config.GetHealth(_level);
     }
 
     bool IAttackTarget.IsValid => this != null && enabled && !Dead;

@@ -1,6 +1,8 @@
+using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(CharacterController), typeof(Animator))]
 public class PlayerController : MonoBehaviour, InputControls.IPlayerActions, IStateMachineEventListener
@@ -33,8 +35,6 @@ public class PlayerController : MonoBehaviour, InputControls.IPlayerActions, ISt
 
         _entitiesLayer = LayerMask.NameToLayer("Entities");
     }
-
-
     void InputControls.IPlayerActions.OnAttack(InputAction.CallbackContext context)
     {
         if (context.started)
