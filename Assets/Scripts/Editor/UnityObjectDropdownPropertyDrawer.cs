@@ -28,10 +28,11 @@ public abstract class UnityObjectDropdownPropertyDrawer<T> : PropertyDrawer wher
         foreach (var guid in FindAssets())
         {
             var path = AssetDatabase.GUIDToAssetPath(guid);
-            var asset = AssetDatabase.LoadMainAssetAtPath(path);
-            if (asset is T tasset)
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset != null)
             {
-                _options[GetLabel(tasset)] = path;
+                _options[GetLabel(asset)] = path;
+                Resources.UnloadAsset(asset);
             }
         }
         return _options;
@@ -44,7 +45,7 @@ public abstract class UnityObjectDropdownPropertyDrawer<T> : PropertyDrawer wher
 
     void SetValue(SerializedProperty property, string value)
     {
-        var obj = AssetDatabase.LoadAssetAtPath(value, typeof(Object));
+        var obj = AssetDatabase.LoadAssetAtPath<T>(value);
         property.objectReferenceValue = obj;
     }
 
