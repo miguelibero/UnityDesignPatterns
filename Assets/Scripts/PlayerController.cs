@@ -11,14 +11,17 @@ public class PlayerController : MonoBehaviour, InputControls.IPlayerActions, ISt
 
     [SerializeField] int _attackDamage = 1;
 
+    [SerializeField] GameObject[] _weaponSensors;
+
     Vector3 _moveDirection;
 
     InputControls _controls;
     CharacterController _character;
     Animator _animator;
-    readonly HashSet<IAttackTarget> _possibleAttackTargets = new HashSet<IAttackTarget>();
-    readonly Queue<IAttackTarget> _attackedTargets = new Queue<IAttackTarget>();
-
+    readonly HashSet<IAttackTarget> _attackedTargets = new HashSet<IAttackTarget>();
+    readonly List<Vector3> _lastWeaponSensorPositions = new List<Vector3>();
+    RaycastHit[] _attackRaycastHits = new RaycastHit[1];
+    bool _attacking;
 
     static int _verticalParam = Animator.StringToHash("Vertical Movement");
     static int _horizontalParam = Animator.StringToHash("Horizontal Movement");
@@ -32,21 +35,13 @@ public class PlayerController : MonoBehaviour, InputControls.IPlayerActions, ISt
         _controls = new InputControls();
         _controls.Player.SetCallbacks(this);
         _controls.Player.Enable();
-
-        _entitiesLayer = LayerMask.NameToLayer("Entities");
     }
     void InputControls.IPlayerActions.OnAttack(InputAction.CallbackContext context)
     {
         if (context.started)
         {
-            foreach(var target in _possibleAttackTargets)
-            {
-                if(target != null && target.IsValid)
-                {
-                    _attackedTargets.Enqueue(target);
-                    break;
-                }
-            }
+            _attacking = true;
+            _attackedTargets.Clear();
             _animator.SetTrigger(_attackParam);
         }
     }
@@ -61,11 +56,6 @@ public class PlayerController : MonoBehaviour, InputControls.IPlayerActions, ISt
         _moveDirection = new Vector3(v.x, 0.0f, v.y);
         _animator.SetFloat(_verticalParam, _moveDirection.z);
         _animator.SetFloat(_horizontalParam, _moveDirection.x);
-
-        if (_moveDirection.sqrMagnitude > 0.0f)
-        {
-            _possibleAttackTargets.Clear();
-        }
     }
 
     void FixedUpdate()
@@ -75,15 +65,42 @@ public class PlayerController : MonoBehaviour, InputControls.IPlayerActions, ISt
 
     void Update()
     {
+        if(_attacking)
+        {
+            UpdatePossibleAttackTargets();
+        }
     }
 
-    int _entitiesLayer;
-
-    void OnControllerColliderHit(ControllerColliderHit hit)
+    void UpdatePossibleAttackTargets()
     {
-        foreach (var target in hit.gameObject.GetComponents<IAttackTarget>())
+        for (var i = 0; i < _weaponSensors.Length; i++)
         {
-            _possibleAttackTargets.Add(target);
+            if (_lastWeaponSensorPositions.Count <= i)
+            {
+                continue;
+            }
+            var pos = _lastWeaponSensorPositions[i];
+            var fwd = pos - _weaponSensors[i].transform.position;
+            Physics.RaycastNonAlloc(pos, fwd, _attackRaycastHits, fwd.magnitude);
+            foreach (var hit in _attackRaycastHits)
+            {
+                if(hit.collider == null)
+                {
+                    continue;
+                }
+                foreach (var target in hit.collider.gameObject.GetComponents<IAttackTarget>())
+                {
+                    if (target.IsValid)
+                    {
+                        _attackedTargets.Add(target);
+                    }
+                }
+            }
+        }
+        _lastWeaponSensorPositions.Clear();
+        foreach (var sensor in _weaponSensors)
+        {
+            _lastWeaponSensorPositions.Add(sensor.transform.position);
         }
     }
 
@@ -91,10 +108,13 @@ public class PlayerController : MonoBehaviour, InputControls.IPlayerActions, ISt
     {
         if (name == "Hit")
         {
-            if (_attackedTargets.Count > 0)
+            _attacking = false;
+            foreach(var target in _attackedTargets)
             {
-                _attackedTargets.Dequeue().OnAttackHit(transform.position, _attackDamage);
+                target.OnAttackHit(transform.position, _attackDamage);
+
             }
+            _attackedTargets.Clear();
         }
     }
 }
