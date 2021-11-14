@@ -1,5 +1,7 @@
 
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody), typeof(MeshFilter))]
@@ -25,14 +27,14 @@ public class BreakableTargetController : MonoBehaviour, IAttackTarget
         _renderer = GetComponent<Renderer>();
     }
 
-    void IAttackTarget.OnAttackHit(Vector3 position, int damage)
+    Task IAttackTarget.OnAttackHit(Vector3 position, int damage, CancellationToken cancellationToken)
     {
-        if(!IsValid)
+        if(IsValid)
         {
-            return;
+            BreakIntoPieces(transform.position - position);
+            Destroy(gameObject);
         }
-        BreakIntoPieces(transform.position - position);
-        Destroy(gameObject);
+        return Task.CompletedTask;
     }
 
     void BreakIntoPieces(Vector3 dir)

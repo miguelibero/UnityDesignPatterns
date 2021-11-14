@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -104,17 +105,19 @@ public class PlayerController : MonoBehaviour, InputControls.IPlayerActions, ISt
         }
     }
 
-    void IStateMachineEventListener.OnStateMachineEvent(string name, Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
+    async void IStateMachineEventListener.OnStateMachineEvent(string name, Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         if (name == "Hit")
         {
             _attacking = false;
+            var tasks = new List<Task>();
             foreach(var target in _attackedTargets)
             {
-                target.OnAttackHit(transform.position, _attackDamage);
-
+                tasks.Add(target.OnAttackHit(transform.position, _attackDamage));
             }
             _attackedTargets.Clear();
+            await Task.WhenAll(tasks);
+            Debug.Log("attack finished");
         }
     }
 }

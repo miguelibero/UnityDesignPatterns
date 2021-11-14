@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
-
 public class TableEditorWindow<T> : EditorWindow where T : Object
 {
     IList<Editor> _editors;

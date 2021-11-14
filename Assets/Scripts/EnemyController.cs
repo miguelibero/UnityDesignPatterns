@@ -1,5 +1,7 @@
 
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
@@ -45,24 +47,29 @@ public class EnemyController : MonoBehaviour, IAttackTarget, IStateMachineEventL
     {
         if (Dead)
         {
-            _animator.SetTrigger(_dieParam);
+            
             return true;
         }
         return false;
     }
 
-    void IAttackTarget.OnAttackHit(Vector3 position, int damage)
+    TaskCompletionSource<bool> _deadAnimCompletionSource;
+
+    Task IAttackTarget.OnAttackHit(Vector3 position, int damage, CancellationToken cancellationToken)
     {
         if (Dead)
         {
-            return;
+            return Task.CompletedTask;
         }
         _health -= damage;
-        if(CheckDead())
+        if (Dead)
         {
-            return;
+            _deadAnimCompletionSource = new TaskCompletionSource<bool>();
+            _animator.SetTrigger(_dieParam);
+            return _deadAnimCompletionSource.Task;
         }
         _animator.SetTrigger(_hitParam);
+        return Task.CompletedTask;
     }
 
     void IStateMachineEventListener.OnStateMachineEvent(string name, Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
@@ -74,6 +81,7 @@ public class EnemyController : MonoBehaviour, IAttackTarget, IStateMachineEventL
             {
                 _collider.enabled = false;
             }
+            _deadAnimCompletionSource.TrySetResult(true);
         }
     }
 }
